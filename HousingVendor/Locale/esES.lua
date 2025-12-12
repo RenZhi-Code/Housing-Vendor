@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - Spanish (Spain)
+-- Spanish (Spain) Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Navegación inteligente por portal hab
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Usará automáticamente el portal más cercano al cambiar entre zonas"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Navegación directa habilitada"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "Los puntos de ruta apuntarán directamente a las ubicaciones de los vendedores (no recomendado para viajes entre zonas)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "La expansión de World of Warcraft de la que proviene este objeto"
+L["TOOLTIP_INFO_FACTION"] = "Qué facción puede comprar este objeto del vendedor"
+L["TOOLTIP_INFO_VENDOR"] = "Vendedor PNJ que vende este objeto"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "Vendedor PNJ que vende este objeto\n\nUbicación: %s\nCoordenadas: %s"
+L["TOOLTIP_INFO_ZONE"] = "Zona donde se encuentra este vendedor"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Zona donde se encuentra este vendedor\n\nCoordenadas: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Requisito de reputación para comprar este objeto del vendedor"
+L["TOOLTIP_INFO_RENOWN"] = "Nivel de renombre requerido con una facción principal para desbloquear este objeto"
+L["TOOLTIP_INFO_PROFESSION"] = "La profesión requerida para fabricar este objeto"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Nivel de habilidad requerido en esta profesión para fabricar el objeto"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "El nombre de la receta o patrón para fabricar este objeto"
+L["TOOLTIP_INFO_EVENT"] = "Evento especial o festividad cuando este objeto está disponible"
+L["TOOLTIP_INFO_CLASS"] = "Este objeto solo puede ser usado por esta clase"
+L["TOOLTIP_INFO_RACE"] = "Este objeto solo puede ser usado por esta raza"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Navegación inteligente por portal habilitada. Los puntos de ruta usarán automáticamente el portal más cercano al cambiar entre zonas."

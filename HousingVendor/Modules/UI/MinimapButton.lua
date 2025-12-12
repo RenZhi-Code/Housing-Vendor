@@ -1,4 +1,4 @@
--- Minimap Button for HousingVendors addon
+-- Minimap Button
 local HousingMinimapButton = {}
 HousingMinimapButton.__index = HousingMinimapButton
 

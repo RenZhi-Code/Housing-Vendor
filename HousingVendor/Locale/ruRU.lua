@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - Russian
+-- Russian Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Умная навигация чере
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Автоматически будет использовать ближайший портал при переходе между зонами"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Прямая навигация включена"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "Путевые точки будут указывать прямо на местоположения продавцов (не рекомендуется для путешествий между зонами)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "Дополнение World of Warcraft, из которого этот предмет"
+L["TOOLTIP_INFO_FACTION"] = "Какая фракция может купить этот предмет у продавца"
+L["TOOLTIP_INFO_VENDOR"] = "NPC-продавец, который продает этот предмет"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "NPC-продавец, который продает этот предмет\n\nМестоположение: %s\nКоординаты: %s"
+L["TOOLTIP_INFO_ZONE"] = "Зона, где находится этот продавец"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Зона, где находится этот продавец\n\nКоординаты: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Требование репутации для покупки этого предмета у продавца"
+L["TOOLTIP_INFO_RENOWN"] = "Требуемый уровень известности с основной фракцией для разблокировки этого предмета"
+L["TOOLTIP_INFO_PROFESSION"] = "Профессия, необходимая для создания этого предмета"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Уровень навыка, необходимый в этой профессии для создания предмета"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "Название рецепта или выкройки для создания этого предмета"
+L["TOOLTIP_INFO_EVENT"] = "Особое событие или праздник, когда этот предмет доступен"
+L["TOOLTIP_INFO_CLASS"] = "Этот предмет может использовать только этот класс"
+L["TOOLTIP_INFO_RACE"] = "Этот предмет может использовать только эта раса"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Умная навигация через порталы включена. Путевые точки будут автоматически использовать ближайший портал при переходе между зонами."

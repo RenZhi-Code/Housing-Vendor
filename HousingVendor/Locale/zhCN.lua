@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - Simplified Chinese
+-- Simplified Chinese Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "智能传送门导航已启用"
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "跨越区域时将自动使用最近的传送门"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "直接导航已启用"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "路径点将直接指向商贩位置（不建议用于跨区域旅行）"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "此物品来自的魔兽世界资料片"
+L["TOOLTIP_INFO_FACTION"] = "哪个阵营可以从商贩处购买此物品"
+L["TOOLTIP_INFO_VENDOR"] = "出售此物品的NPC商贩"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "出售此物品的NPC商贩\n\n位置：%s\n坐标：%s"
+L["TOOLTIP_INFO_ZONE"] = "此商贩所在的区域"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "此商贩所在的区域\n\n坐标：%s"
+L["TOOLTIP_INFO_REPUTATION"] = "从商贩处购买此物品所需的声望要求"
+L["TOOLTIP_INFO_RENOWN"] = "解锁此物品所需的主要阵营名望等级"
+L["TOOLTIP_INFO_PROFESSION"] = "制作此物品所需的专业技能"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "制作此物品所需的专业技能等级"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "制作此物品的配方或图样名称"
+L["TOOLTIP_INFO_EVENT"] = "此物品可用的特殊活动或节日"
+L["TOOLTIP_INFO_CLASS"] = "此物品只能由此职业使用"
+L["TOOLTIP_INFO_RACE"] = "此物品只能由此种族使用"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "智能传送门导航已启用。跨越区域时路径点将自动使用最近的传送门。"

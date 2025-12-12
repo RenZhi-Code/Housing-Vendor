@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - English (US)
+-- English (US) Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Smart Portal Navigation Enabled"
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Will automatically use the nearest portal when crossing zones"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Direct navigation enabled"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "Waypoints will point directly to vendor locations (not recommended for cross-zone travel)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "The World of Warcraft expansion this item is from"
+L["TOOLTIP_INFO_FACTION"] = "Which faction can purchase this item from the vendor"
+L["TOOLTIP_INFO_VENDOR"] = "NPC vendor who sells this item"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "NPC vendor who sells this item\n\nLocation: %s\nCoordinates: %s"
+L["TOOLTIP_INFO_ZONE"] = "Zone where this vendor is located"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Zone where this vendor is located\n\nCoordinates: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Reputation requirement to purchase this item from the vendor"
+L["TOOLTIP_INFO_RENOWN"] = "Renown level required with a major faction to unlock this item"
+L["TOOLTIP_INFO_PROFESSION"] = "The profession required to craft this item"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Skill level required in this profession to craft the item"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "The recipe or pattern name for crafting this item"
+L["TOOLTIP_INFO_EVENT"] = "Special event or holiday when this item is available"
+L["TOOLTIP_INFO_CLASS"] = "This item can only be used by this class"
+L["TOOLTIP_INFO_RACE"] = "This item can only be used by this race"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Smart portal navigation enabled. Waypoints will automatically use the nearest portal when crossing zones."

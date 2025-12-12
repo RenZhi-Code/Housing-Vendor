@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - Italian
+-- Italian Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Navigazione Intelligente tramite Porta
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Userà automaticamente il portale più vicino quando si attraversano le zone"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Navigazione diretta abilitata"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "I punti di riferimento punteranno direttamente alle posizioni dei venditori (non consigliato per i viaggi tra zone)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "L'espansione di World of Warcraft da cui proviene questo oggetto"
+L["TOOLTIP_INFO_FACTION"] = "Quale fazione può acquistare questo oggetto dal venditore"
+L["TOOLTIP_INFO_VENDOR"] = "Venditore PNG che vende questo oggetto"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "Venditore PNG che vende questo oggetto\n\nPosizione: %s\nCoordinate: %s"
+L["TOOLTIP_INFO_ZONE"] = "Zona in cui si trova questo venditore"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Zona in cui si trova questo venditore\n\nCoordinate: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Requisito di reputazione per acquistare questo oggetto dal venditore"
+L["TOOLTIP_INFO_RENOWN"] = "Livello di fama richiesto con una fazione principale per sbloccare questo oggetto"
+L["TOOLTIP_INFO_PROFESSION"] = "La professione richiesta per creare questo oggetto"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Livello di abilità richiesto in questa professione per creare l'oggetto"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "Il nome della ricetta o schema per creare questo oggetto"
+L["TOOLTIP_INFO_EVENT"] = "Evento speciale o festività in cui questo oggetto è disponibile"
+L["TOOLTIP_INFO_CLASS"] = "Questo oggetto può essere usato solo da questa classe"
+L["TOOLTIP_INFO_RACE"] = "Questo oggetto può essere usato solo da questa razza"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Navigazione intelligente tramite portali abilitata. I punti di riferimento useranno automaticamente il portale più vicino quando si attraversano le zone."

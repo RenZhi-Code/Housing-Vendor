@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - German (Germany)
+-- German (Germany) Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Intelligente Portalnavigation aktivier
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Verwendet automatisch das nächstgelegene Portal beim Wechsel zwischen Zonen"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Direkte Navigation aktiviert"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "Wegpunkte zeigen direkt zu den Verkäuferstandorten (nicht empfohlen für die Navigation zwischen Zonen)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "Die World of Warcraft-Erweiterung, aus der dieser Gegenstand stammt"
+L["TOOLTIP_INFO_FACTION"] = "Welche Fraktion kann diesen Gegenstand beim Verkäufer kaufen"
+L["TOOLTIP_INFO_VENDOR"] = "NPC-Verkäufer, der diesen Gegenstand verkauft"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "NPC-Verkäufer, der diesen Gegenstand verkauft\n\nOrt: %s\nKoordinaten: %s"
+L["TOOLTIP_INFO_ZONE"] = "Zone, in der sich dieser Verkäufer befindet"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Zone, in der sich dieser Verkäufer befindet\n\nKoordinaten: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Rufanforderung zum Kauf dieses Gegenstands beim Verkäufer"
+L["TOOLTIP_INFO_RENOWN"] = "Erforderliche Ruhmesstufe bei einer Hauptfraktion, um diesen Gegenstand freizuschalten"
+L["TOOLTIP_INFO_PROFESSION"] = "Der Beruf, der zum Herstellen dieses Gegenstands erforderlich ist"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Erforderliche Fertigkeitsstufe in diesem Beruf, um den Gegenstand herzustellen"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "Das Rezept oder Muster zum Herstellen dieses Gegenstands"
+L["TOOLTIP_INFO_EVENT"] = "Besonderes Ereignis oder Feiertag, an dem dieser Gegenstand verfügbar ist"
+L["TOOLTIP_INFO_CLASS"] = "Dieser Gegenstand kann nur von dieser Klasse verwendet werden"
+L["TOOLTIP_INFO_RACE"] = "Dieser Gegenstand kann nur von diesem Volk verwendet werden"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Intelligente Portalnavigation aktiviert. Wegpunkte verwenden automatisch das nächstgelegene Portal beim Wechsel zwischen Zonen."

@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - French (France)
+-- French (France) Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "Navigation intelligente par portail ac
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "Utilisera automatiquement le portail le plus proche lors du franchissement des zones"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "Navigation directe activée"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "Les points de repère pointeront directement vers les emplacements des vendeurs (non recommandé pour les déplacements entre zones)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "L'extension World of Warcraft dont provient cet objet"
+L["TOOLTIP_INFO_FACTION"] = "Quelle faction peut acheter cet objet auprès du vendeur"
+L["TOOLTIP_INFO_VENDOR"] = "Vendeur PNJ qui vend cet objet"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "Vendeur PNJ qui vend cet objet\n\nEmplacement: %s\nCoordonnées: %s"
+L["TOOLTIP_INFO_ZONE"] = "Zone où se trouve ce vendeur"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "Zone où se trouve ce vendeur\n\nCoordonnées: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "Exigence de réputation pour acheter cet objet auprès du vendeur"
+L["TOOLTIP_INFO_RENOWN"] = "Niveau de renom requis auprès d'une faction majeure pour débloquer cet objet"
+L["TOOLTIP_INFO_PROFESSION"] = "La profession requise pour fabriquer cet objet"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "Niveau de compétence requis dans cette profession pour fabriquer l'objet"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "Le nom de la recette ou du patron pour fabriquer cet objet"
+L["TOOLTIP_INFO_EVENT"] = "Événement spécial ou fête pendant lequel cet objet est disponible"
+L["TOOLTIP_INFO_CLASS"] = "Cet objet ne peut être utilisé que par cette classe"
+L["TOOLTIP_INFO_RACE"] = "Cet objet ne peut être utilisé que par cette race"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "Navigation intelligente par portail activée. Les points de repère utiliseront automatiquement le portail le plus proche lors du franchissement des zones."

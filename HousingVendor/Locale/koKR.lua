@@ -1,4 +1,4 @@
--- Localization for HousingVendor addon - Korean
+-- Korean Localization
 local L = {}
 
 -- Main UI Strings
@@ -68,6 +68,22 @@ L["TOOLTIP_PORTAL_NAVIGATION_ENABLED"] = "스마트 포털 탐색 활성화됨"
 L["TOOLTIP_PORTAL_NAVIGATION_DESC"] = "지역 간 이동 시 자동으로 가장 가까운 포털을 사용합니다"
 L["TOOLTIP_DIRECT_NAVIGATION"] = "직접 탐색 활성화됨"
 L["TOOLTIP_DIRECT_NAVIGATION_DESC"] = "웨이포인트가 판매자 위치를 직접 가리킵니다 (지역 간 이동에는 권장되지 않음)"
+
+-- Info Panel Tooltips
+L["TOOLTIP_INFO_EXPANSION"] = "이 아이템이 속한 월드 오브 워크래프트 확장팩"
+L["TOOLTIP_INFO_FACTION"] = "판매자에게서 이 아이템을 구매할 수 있는 진영"
+L["TOOLTIP_INFO_VENDOR"] = "이 아이템을 판매하는 NPC 판매자"
+L["TOOLTIP_INFO_VENDOR_WITH_COORDS"] = "이 아이템을 판매하는 NPC 판매자\n\n위치: %s\n좌표: %s"
+L["TOOLTIP_INFO_ZONE"] = "이 판매자가 위치한 지역"
+L["TOOLTIP_INFO_ZONE_WITH_COORDS"] = "이 판매자가 위치한 지역\n\n좌표: %s"
+L["TOOLTIP_INFO_REPUTATION"] = "판매자에게서 이 아이템을 구매하는 데 필요한 평판"
+L["TOOLTIP_INFO_RENOWN"] = "이 아이템을 잠금 해제하는 데 필요한 주요 진영의 명성 레벨"
+L["TOOLTIP_INFO_PROFESSION"] = "이 아이템을 제작하는 데 필요한 전문 기술"
+L["TOOLTIP_INFO_PROFESSION_SKILL"] = "아이템을 제작하는 데 필요한 이 전문 기술의 숙련도"
+L["TOOLTIP_INFO_PROFESSION_RECIPE"] = "이 아이템을 제작하기 위한 조리법 또는 도안 이름"
+L["TOOLTIP_INFO_EVENT"] = "이 아이템을 구할 수 있는 특별 이벤트 또는 기념일"
+L["TOOLTIP_INFO_CLASS"] = "이 아이템은 이 직업만 사용할 수 있습니다"
+L["TOOLTIP_INFO_RACE"] = "이 아이템은 이 종족만 사용할 수 있습니다"
 
 -- Messages
 L["MESSAGE_PORTAL_NAV_ENABLED"] = "스마트 포털 탐색이 활성화되었습니다. 지역 간 이동 시 웨이포인트가 자동으로 가장 가까운 포털을 사용합니다."

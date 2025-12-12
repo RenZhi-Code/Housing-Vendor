@@ -1,5 +1,5 @@
--- Filters Module for HousingVendor addon
--- Clean filter controls and logic
+-- Filters Module
+-- Midnight Theme - Clean, Modern Filter Controls
 
 local Filters = {}
 Filters.__index = Filters
@@ -7,187 +7,17 @@ Filters.__index = Filters
 -- Cache global references for performance
 local _G = _G
 local CreateFrame = CreateFrame
-local UIDropDownMenu_SetWidth = UIDropDownMenu_SetWidth
-local UIDropDownMenu_Initialize = UIDropDownMenu_Initialize
-local UIDropDownMenu_SetSelectedValue = UIDropDownMenu_SetSelectedValue
-local UIDropDownMenu_AddButton = UIDropDownMenu_AddButton
-local UIDropDownMenu_GetSelectedValue = UIDropDownMenu_GetSelectedValue
-local math_ceil = math.ceil
-local math_min = math.min
-local math_max = math.max
 local table_insert = table.insert
-local string_format = string.format
 
 local filterFrame = nil
 
--- Cache for dropdown column layouts
-local dropdownLayoutCache = {}
-
--- Hook dropdown menu to set custom widths and enable multi-column display
-local originalToggleDropDownMenu = ToggleDropDownMenu
-function ToggleDropDownMenu(level, value, dropDownFrame, anchorName, xOffset, yOffset, menuList, button, autoHideDelay)
-    local result = originalToggleDropDownMenu(level, value, dropDownFrame, anchorName, xOffset, yOffset, menuList, button, autoHideDelay)
-    
-    -- Set custom width for specific dropdowns
-    if dropDownFrame and dropDownFrame.customLabel then
-        local label = dropDownFrame.customLabel
-        
-        if (label == "Vendor" or label == "Zone") and DropDownList1 and DropDownList1:IsShown() then
-            -- Collect visible buttons
-            local visibleButtons = {}
-            for i = 1, UIDROPDOWNMENU_MAXBUTTONS do
-                local btn = _G["DropDownList1Button" .. i]
-                if btn and btn:IsShown() then
-                    table.insert(visibleButtons, btn)
-                end
-            end
-            
-            -- Generate cache key based on label and button count
-            local cacheKey = string.format("%s_%d", label, #visibleButtons)
-            local layout = dropdownLayoutCache[cacheKey]
-            
-            -- Calculate layout if not cached
-            if not layout then
-                -- Both Vendor and Zone use 4 columns for uniformity
-                local numColumns = 4
-                local columnWidth = 185
-                local spacing = 8
-                local leftPadding = 20
-                local menuWidth = leftPadding + (columnWidth * numColumns) + (spacing * (numColumns - 1)) + 20
-                
-                -- Split buttons into columns
-                local columns = {}
-                for i = 1, numColumns do
-                    columns[i] = {}
-                end
-                
-                local itemsPerColumn = math.ceil(#visibleButtons / numColumns)
-                for i = 1, #visibleButtons do
-                    local columnIndex = math.min(math.ceil(i / itemsPerColumn), numColumns)
-                    table.insert(columns[columnIndex], i)  -- Store indices, not buttons
-                end
-                
-                -- Calculate menu height
-                local maxColumnHeight = 0
-                for _, column in ipairs(columns) do
-                    maxColumnHeight = math.max(maxColumnHeight, #column)
-                end
-                local menuHeight = maxColumnHeight * 16 + 30
-                
-                -- Cache the layout
-                layout = {
-                    numColumns = numColumns,
-                    columnWidth = columnWidth,
-                    spacing = spacing,
-                    leftPadding = leftPadding,
-                    menuWidth = menuWidth,
-                    menuHeight = menuHeight,
-                    columns = columns
-                }
-                dropdownLayoutCache[cacheKey] = layout
-            end
-            
-            local menuWidth = layout.menuWidth
-            local menuHeight = layout.menuHeight
-            
-            -- Set width and height BEFORE positioning buttons
-            DropDownList1:SetWidth(menuWidth)
-            DropDownList1:SetHeight(menuHeight)
-            
-            -- Create or update custom wide backdrop
-            if not DropDownList1.customWideBackdrop then
-                DropDownList1.customWideBackdrop = CreateFrame("Frame", nil, DropDownList1, "BackdropTemplate")
-                -- Ensure frame level is valid (0 to 65535)
-                local parentLevel = DropDownList1:GetFrameLevel()
-                local backdropLevel = math.max(0, parentLevel - 1)
-                DropDownList1.customWideBackdrop:SetFrameLevel(backdropLevel)
-                DropDownList1.customWideBackdrop:SetBackdrop({
-                    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-                    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-                    tile = true,
-                    tileSize = 16,
-                    edgeSize = 16,
-                    insets = { left = 4, right = 4, top = 4, bottom = 4 }
-                })
-                DropDownList1.customWideBackdrop:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
-            end
-            
-            -- Update backdrop size and position
-            DropDownList1.customWideBackdrop:ClearAllPoints()
-            DropDownList1.customWideBackdrop:SetPoint("TOPLEFT", DropDownList1, "TOPLEFT", 0, 0)
-            DropDownList1.customWideBackdrop:SetWidth(menuWidth)
-            DropDownList1.customWideBackdrop:SetHeight(menuHeight)
-            DropDownList1.customWideBackdrop:Show()
-            
-            -- Hide original narrow border textures and left edge bar
-            for i = 1, DropDownList1:GetNumRegions() do
-                local region = select(i, DropDownList1:GetRegions())
-                if region and region:GetObjectType() == "Texture" then
-                    local texturePath = region:GetTexture() or ""
-                    -- Hide tooltip borders and menu backdrop
-                    if texturePath:find("UI%-Tooltip") or texturePath:find("MenuBackdrop") then
-                        region:Hide()
-                    end
-                end
-            end
-            
-            -- Hide the left border/bar specifically
-            if _G["DropDownList1Border"] then
-                _G["DropDownList1Border"]:Hide()
-            end
-            if DropDownList1.Border then
-                DropDownList1.Border:Hide()
-            end
-            
-            -- Position all columns using cached layout
-            for colIndex, columnIndices in ipairs(layout.columns) do
-                local xOffset = layout.leftPadding + ((colIndex - 1) * (layout.columnWidth + layout.spacing))
-                
-                local prevBtn = nil
-                for rowIndex, btnIndex in ipairs(columnIndices) do
-                    local btn = visibleButtons[btnIndex]
-                    if btn then
-                        btn:ClearAllPoints()
-                        btn:SetWidth(layout.columnWidth)
-                        if rowIndex == 1 then
-                            btn:SetPoint("TOPLEFT", DropDownList1, "TOPLEFT", xOffset, -15)
-                        else
-                            btn:SetPoint("TOPLEFT", prevBtn, "BOTTOMLEFT", 0, 0)
-                        end
-                        prevBtn = btn
-                        
-                        -- Remove highlight/check borders from buttons
-                        if btn.Highlight then
-                            btn.Highlight:Hide()
-                        end
-                        if btn.Check then
-                            btn.Check:Hide()
-                        end
-                        if btn.UnCheck then
-                            btn.UnCheck:Hide()
-                        end
-                    end
-                end
-            end
-        else
-            -- For other dropdowns, hide the custom backdrop if it exists
-            if DropDownList1 and DropDownList1.customWideBackdrop then
-                DropDownList1.customWideBackdrop:Hide()
-                -- Restore original border textures
-                for i = 1, DropDownList1:GetNumRegions() do
-                    local region = select(i, DropDownList1:GetRegions())
-                    if region and region:GetObjectType() == "Texture" then
-                        local texturePath = region:GetTexture() or ""
-                        if texturePath:find("UI%-Tooltip") then
-                            region:Show()
-                        end
-                    end
-                end
-            end
-        end
+-- Theme reference
+local Theme = nil
+local function GetTheme()
+    if not Theme then
+        Theme = HousingTheme or {}
     end
-    
-    return result
+    return Theme
 end
 
 -- Get default faction based on player's faction
@@ -209,42 +39,47 @@ local currentFilters = {
     category = "All Categories",
     faction = GetDefaultFaction(),
     source = "All Sources",
-    collection = "Uncollected",
+    collection = "All",
+    quality = "All Qualities",
+    requirement = "All Requirements",
+    hideVisited = false,
     selectedExpansions = {},
     selectedSources = {},
     selectedFactions = {}
 }
-
--- Helper to get filter key from label
-local function GetFilterKey(label)
-    return string.lower(label)
-end
 
 -- Initialize filters
 function Filters:Initialize(parentFrame)
     self:CreateFilterSection(parentFrame)
 end
 
--- Create filter section
+-- Create filter section (Midnight Theme)
 function Filters:CreateFilterSection(parentFrame)
-    filterFrame = CreateFrame("Frame", "HousingFilterFrame", parentFrame, "BackdropTemplate")
-    -- Adjust position if warning message exists (35px height)
-    local topOffset = -70
-    if parentFrame.warningMessage then
-        topOffset = -105 -- Move down by 35px to account for warning message
-    end
-    filterFrame:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 15, topOffset)
-    filterFrame:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -15, topOffset)
-    filterFrame:SetHeight(110)
+    local theme = GetTheme()
+    local colors = theme.Colors or {}
     
-    -- Modern dark background
+    filterFrame = CreateFrame("Frame", "HousingFilterFrame", parentFrame, "BackdropTemplate")
+    -- Position below header
+    local topOffset = -55  -- Just below header
+    filterFrame:SetPoint("TOPLEFT", parentFrame, "TOPLEFT", 2, topOffset)
+    filterFrame:SetPoint("TOPRIGHT", parentFrame, "TOPRIGHT", -2, topOffset)
+    filterFrame:SetHeight(130)  -- Compact height for 3 rows
+    
+    -- Midnight theme backdrop
     filterFrame:SetBackdrop({
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true, tileSize = 16, edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false,
+        tileSize = 0,
+        edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
     })
-    filterFrame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    
+    local bgSecondary = HousingTheme.Colors.bgSecondary
+    local bgTertiary = HousingTheme.Colors.bgTertiary
+    local borderPrimary = HousingTheme.Colors.borderPrimary
+    filterFrame:SetBackdropColor(bgSecondary[1], bgSecondary[2], bgSecondary[3], bgSecondary[4])
+    filterFrame:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], 0.5)
     
     -- Perfect grid alignment - all dropdowns same width and spacing
     local dropdownWidth = 200  -- Wider dropdowns
@@ -255,91 +90,227 @@ function Filters:CreateFilterSection(parentFrame)
     local col3X = col2X + dropdownWidth + spacing
     local col4X = col3X + dropdownWidth + spacing
     
-    -- ROW 1: Search, Expansion, Vendor, Zone
-    -- Search box (column 1)
-    local searchBox = CreateFrame("EditBox", "HousingSearchBox", filterFrame, "InputBoxTemplate")
-    searchBox:SetSize(dropdownWidth, 22)
-    searchBox:SetPoint("TOPLEFT", col1X + 25, -25)
+    -- ROW 1: Search, Expansion, Vendor, Zone (compact spacing)
+    local row1Y = -18  -- First row closer to top
+    
+    -- Search box (column 1) - Midnight theme styled
+    local searchContainer = CreateFrame("Frame", nil, filterFrame, "BackdropTemplate")
+    searchContainer:SetSize(dropdownWidth - 10, 24)
+    searchContainer:SetPoint("TOPLEFT", col1X, row1Y)
+    searchContainer:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false,
+        edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    local bgTertiary = HousingTheme.Colors.bgTertiary
+    local borderPrimary = HousingTheme.Colors.borderPrimary
+    searchContainer:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+    searchContainer:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+    
+    local searchBox = CreateFrame("EditBox", "HousingSearchBox", searchContainer)
+    searchBox:SetPoint("TOPLEFT", 8, -4)
+    searchBox:SetPoint("BOTTOMRIGHT", -8, 4)
     searchBox:SetAutoFocus(false)
+    searchBox:SetFontObject("GameFontNormalSmall")
+    local textPrimary = HousingTheme.Colors.textPrimary
+    searchBox:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
     searchBox:SetScript("OnTextChanged", function(self)
         currentFilters.searchText = self:GetText()
         Filters:ApplyFilters()
     end)
+    searchBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
     
-    local searchLabel = filterFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    searchLabel:SetPoint("BOTTOMLEFT", searchBox, "TOPLEFT", -5, 3)  -- Top left of search box
+    local searchLabel = filterFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    searchLabel:SetPoint("BOTTOMLEFT", searchContainer, "TOPLEFT", 2, 1)
     searchLabel:SetText("Search:")
-    searchLabel:SetTextColor(1, 0.82, 0, 1)
+    local accentPrimary = HousingTheme.Colors.accentPrimary
+    searchLabel:SetTextColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
     
-    -- Expansion dropdown (column 2)
-    local expansionDD = self:CreateDropdown(filterFrame, "Expansion", "TOPLEFT", filterFrame, "TOPLEFT", col2X, function(value)
+    -- Expansion scrollable button selector (column 2)
+    local expansionBtn = self:CreateScrollableSelector(filterFrame, "Expansion", col2X, row1Y, function(value)
         currentFilters.expansion = value
         self:ApplyFilters()
     end)
-    expansionDD:SetPoint("TOPLEFT", col2X, -25)
-    
-    -- Vendor dropdown (column 3)
-    local vendorDD = self:CreateDropdown(filterFrame, "Vendor", "TOPLEFT", filterFrame, "TOPLEFT", col3X, function(value)
+
+    -- Vendor scrollable button selector (column 3)
+    local vendorBtn = self:CreateScrollableSelector(filterFrame, "Vendor", col3X, row1Y, function(value)
         currentFilters.vendor = value
         self:ApplyFilters()
     end)
-    vendorDD:SetPoint("TOPLEFT", col3X, -25)
-    
-    -- Zone dropdown (column 4)
-    local zoneDD = self:CreateDropdown(filterFrame, "Zone", "TOPLEFT", filterFrame, "TOPLEFT", col4X, function(value)
+
+    -- Zone scrollable button selector (column 4)
+    local zoneBtn = self:CreateScrollableSelector(filterFrame, "Zone", col4X, row1Y, function(value)
         currentFilters.zone = value
         self:ApplyFilters()
     end)
-    zoneDD:SetPoint("TOPLEFT", col4X, -25)
     
-    -- ROW 2: Type, Category, Source, Faction (perfectly aligned with row 1)
-    local row2Y = -72  -- Slightly more spacing between rows
-    
-    -- Type dropdown (column 1 - aligns with Search)
-    local typeDropdown = self:CreateDropdown(filterFrame, "Type", "TOPLEFT", filterFrame, "TOPLEFT", col1X, function(value)
+    -- ROW 2: Type, Category, Source, Faction (compact spacing)
+    local row2Y = -58  -- Second row
+
+    -- Type scrollable button selector (column 1 - aligns with Search)
+    local typeBtn = self:CreateScrollableSelector(filterFrame, "Type", col1X, row2Y, function(value)
         currentFilters.type = value
         self:ApplyFilters()
     end)
-    typeDropdown:SetPoint("TOPLEFT", col1X, row2Y)
-    
-    -- Category dropdown (column 2 - aligns with Expansion)
-    local categoryDropdown = self:CreateDropdown(filterFrame, "Category", "TOPLEFT", filterFrame, "TOPLEFT", col2X, function(value)
+
+    -- Category scrollable button selector (column 2 - aligns with Expansion)
+    local categoryBtn = self:CreateScrollableSelector(filterFrame, "Category", col2X, row2Y, function(value)
         currentFilters.category = value
         self:ApplyFilters()
     end)
-    categoryDropdown:SetPoint("TOPLEFT", col2X, row2Y)
-    
-    -- Source dropdown (column 3 - aligns with Vendor)
-    local sourceDropdown = self:CreateDropdown(filterFrame, "Source", "TOPLEFT", filterFrame, "TOPLEFT", col3X, function(value)
+
+    -- Source scrollable button selector (column 3 - aligns with Vendor)
+    local sourceBtn = self:CreateScrollableSelector(filterFrame, "Source", col3X, row2Y, function(value)
         currentFilters.source = value
         self:ApplyFilters()
     end)
-    sourceDropdown:SetPoint("TOPLEFT", col3X, row2Y)
-    
-    -- Faction dropdown (column 4 - aligns with Zone)
-    local factionDropdown = self:CreateDropdown(filterFrame, "Faction", "TOPLEFT", filterFrame, "TOPLEFT", col4X, function(value)
+
+    -- Faction scrollable button selector (column 4 - aligns with Zone)
+    local factionBtn = self:CreateScrollableSelector(filterFrame, "Faction", col4X, row2Y, function(value)
         currentFilters.faction = value
         self:ApplyFilters()
     end)
-    factionDropdown:SetPoint("TOPLEFT", col4X, row2Y)
 
-    -- Collection dropdown (column 5 - next to Faction)
-    local col5X = col4X + dropdownWidth + spacing
-    local collectionDropdown = self:CreateCollectionDropdown(filterFrame, "Collection", function(value)
+    -- ROW 3: Collection, Quality, Requirement (compact spacing)
+    local row3Y = -98  -- Third row
+
+    -- Collection scrollable button selector (column 1)
+    local collectionBtn = self:CreateScrollableSelector(filterFrame, "Collection", col1X, row3Y, function(value)
         currentFilters.collection = value
+        
+        -- If switching to Collected/Uncollected filter, batch-check items BEFORE filtering
+        if value ~= "All" and CollectionAPI then
+            if HousingItemList and HousingDataManager then
+                local allItems = HousingDataManager:GetAllItems()
+                if allItems and #allItems > 0 then
+                    -- Collect itemIDs that need checking (not in persistent OR session cache)
+                    local itemIDsToCheck = {}
+                    for _, item in ipairs(allItems) do
+                        local itemID = tonumber(item.itemID)
+                        if itemID then
+                            -- Check if item is in persistent cache
+                            local inPersistentCache = HousingDB and HousingDB.collectedDecor and HousingDB.collectedDecor[itemID] == true
+                            -- We can't check session cache directly, so we'll check via CollectionAPI
+                            -- But to avoid API spam, we'll batch-check items that aren't in persistent cache
+                            if not inPersistentCache then
+                                table.insert(itemIDsToCheck, itemID)
+                            end
+                        end
+                    end
+                    
+                    -- If we have uncached items, batch-check them first, THEN apply filter
+                    if #itemIDsToCheck > 0 then
+                        -- Batch check in chunks to avoid overwhelming the API
+                        local batchSize = 50
+                        local currentBatch = 1
+                        local totalBatches = math.ceil(#itemIDsToCheck / batchSize)
+                        
+                        local function ProcessBatch()
+                            local startIdx = (currentBatch - 1) * batchSize + 1
+                            local endIdx = math.min(startIdx + batchSize - 1, #itemIDsToCheck)
+                            local batch = {}
+                            for i = startIdx, endIdx do
+                                table.insert(batch, itemIDsToCheck[i])
+                            end
+                            
+                            -- Check this batch
+                            CollectionAPI:BatchRefreshCollectionStatus(batch)
+                            
+                            currentBatch = currentBatch + 1
+                            
+                            -- If more batches, schedule next one
+                            if currentBatch <= totalBatches then
+                                C_Timer.After(0.1, ProcessBatch)
+                            else
+                                -- All batches done - now apply the filter
+                                C_Timer.After(0.2, function()
+                                    self:ApplyFilters()
+                                end)
+                            end
+                        end
+                        
+                        -- Start batch processing
+                        ProcessBatch()
+                        return  -- Don't apply filter yet, wait for batch check to complete
+                    end
+                end
+            end
+        end
+        
+        -- Apply filter immediately (either "All" was selected, or cache is already populated)
         self:ApplyFilters()
     end)
-    collectionDropdown:SetPoint("TOPLEFT", col5X, row2Y)
 
-    -- Back button (hidden by default, shown when drilling down into a view)
-    local backBtn = CreateFrame("Button", "HousingBackButton", filterFrame, "UIPanelButtonTemplate")
-    backBtn:SetSize(80, 26)
-    backBtn:SetPoint("TOPRIGHT", -130, -25)
-    backBtn:SetText("← Back")
-    backBtn:SetNormalFontObject("GameFontNormalLarge")
-    backBtn:Hide()  -- Hidden by default
+    -- Quality scrollable button selector (column 2) - API data
+    local qualityBtn = self:CreateScrollableSelector(filterFrame, "Quality", col2X, row3Y, function(value)
+        currentFilters.quality = value
+        self:ApplyFilters()
+    end)
+
+    -- Requirement scrollable button selector (column 3) - API data
+    local requirementBtn = self:CreateScrollableSelector(filterFrame, "Requirement", col3X, row3Y, function(value)
+        currentFilters.requirement = value
+        self:ApplyFilters()
+    end)
+
+    -- Hide Visited Vendors checkbox (column 4)
+    local hideVisitedCheckbox = CreateFrame("CheckButton", "HousingHideVisitedCheckbox", filterFrame, "UICheckButtonTemplate")
+    hideVisitedCheckbox:SetSize(24, 24)
+    hideVisitedCheckbox:SetPoint("TOPLEFT", col4X, row3Y)
+    hideVisitedCheckbox:SetChecked(currentFilters.hideVisited)
+    
+    local hideVisitedLabel = filterFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hideVisitedLabel:SetPoint("LEFT", hideVisitedCheckbox, "RIGHT", 5, 0)
+    hideVisitedLabel:SetText("Hide Visited")
+    hideVisitedLabel:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    
+    hideVisitedCheckbox:SetScript("OnClick", function(self)
+        currentFilters.hideVisited = self:GetChecked()
+        Filters:ApplyFilters()
+        -- Silently toggle visited vendors filter
+        -- print("|cFF8A7FD4HousingVendor:|r " .. (currentFilters.hideVisited and "Hiding" or "Showing") .. " visited vendors")
+    end)
+
+    -- Back button (Midnight theme styled, hidden by default)
+    local backBtn = CreateFrame("Button", "HousingBackButton", filterFrame, "BackdropTemplate")
+    backBtn:SetSize(80, 24)
+    backBtn:SetPoint("TOPRIGHT", -130, -18)
+    backBtn:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    backBtn:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+    backBtn:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+    
+    local backBtnText = backBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    backBtnText:SetPoint("CENTER")
+    backBtnText:SetText("Back")
+    local textPrimary = HousingTheme.Colors.textPrimary
+    backBtnText:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    backBtn.label = backBtnText
+    
+    local bgHover = HousingTheme.Colors.bgHover
+    local accentPrimary = HousingTheme.Colors.accentPrimary
+    local textHighlight = HousingTheme.Colors.textHighlight
+    
+    backBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(bgHover[1], bgHover[2], bgHover[3], bgHover[4])
+        self:SetBackdropBorderColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
+        self.label:SetTextColor(textHighlight[1], textHighlight[2], textHighlight[3], 1)
+    end)
+    backBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+        self:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+        self.label:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    end)
+    backBtn:Hide()
     backBtn:SetScript("OnClick", function()
-        -- Return to the appropriate view based on current display mode
         if HousingUINew and HousingDB and HousingDB.settings and HousingDB.settings.displayMode then
             HousingUINew:RefreshDisplay(HousingDB.settings.displayMode)
             backBtn:Hide()
@@ -347,12 +318,35 @@ function Filters:CreateFilterSection(parentFrame)
     end)
     _G["HousingBackButton"] = backBtn
 
-    -- Modern Clear Filters button (top right, aligned with row 1)
-    local clearBtn = CreateFrame("Button", nil, filterFrame, "UIPanelButtonTemplate")
-    clearBtn:SetSize(110, 26)
-    clearBtn:SetPoint("TOPRIGHT", -10, -25)
-    clearBtn:SetText("Clear Filters")
-    clearBtn:SetNormalFontObject("GameFontNormalLarge")
+    -- Clear Filters button (Midnight theme styled)
+    local clearBtn = CreateFrame("Button", nil, filterFrame, "BackdropTemplate")
+    clearBtn:SetSize(100, 24)
+    clearBtn:SetPoint("TOPRIGHT", -10, -18)
+    clearBtn:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false, edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    clearBtn:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+    clearBtn:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+    
+    local clearBtnText = clearBtn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    clearBtnText:SetPoint("CENTER")
+    clearBtnText:SetText("Clear Filters")
+    clearBtnText:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    clearBtn.label = clearBtnText
+    
+    clearBtn:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(bgHover[1], bgHover[2], bgHover[3], bgHover[4])
+        self:SetBackdropBorderColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
+        self.label:SetTextColor(textHighlight[1], textHighlight[2], textHighlight[3], 1)
+    end)
+    clearBtn:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+        self:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+        self.label:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    end)
     clearBtn:SetScript("OnClick", function()
         self:ClearAllFilters()
     end)
@@ -360,41 +354,169 @@ function Filters:CreateFilterSection(parentFrame)
     _G["HousingFilterFrame"] = filterFrame
 end
 
--- Create a dropdown
-function Filters:CreateDropdown(parent, label, point, relativeTo, relativePoint, xOffset, onChange)
-    local dropdown = CreateFrame("Frame", "Housing" .. label .. "Dropdown", parent, "UIDropDownMenuTemplate")
-    dropdown:SetPoint(point, relativeTo, relativePoint, xOffset, 0)
+-- Create a scrollable selector (Midnight Theme)
+function Filters:CreateScrollableSelector(parent, label, xOffset, yOffset, onChange)
+    local theme = GetTheme()
+    local colors = theme.Colors or {}
     
-    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    labelText:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 20, 3)
+    local container = CreateFrame("Frame", "Housing" .. label .. "Container", parent)
+    container:SetSize(190, 30)
+    container:SetPoint("TOPLEFT", parent, "TOPLEFT", xOffset, yOffset)
+
+    -- Label (Midnight theme)
+    local labelText = container:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    labelText:SetPoint("BOTTOMLEFT", container, "TOPLEFT", 2, 1)
     labelText:SetText(label .. ":")
-    labelText:SetTextColor(1, 0.82, 0, 1)  -- Gold color
+    local accentPrimary = HousingTheme.Colors.accentPrimary
+    labelText:SetTextColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
+
+    -- Button (Midnight theme styled)
+    local button = CreateFrame("Button", "Housing" .. label .. "Button", container, "BackdropTemplate")
+    button:SetSize(190, 24)
+    button:SetPoint("TOPLEFT", 0, 0)
     
-    -- All dropdowns use uniform width for perfect alignment
-    local dropdownWidth = 200
-    UIDropDownMenu_SetWidth(dropdown, dropdownWidth)
-    local defaultText = string.format("All %ss", label)
+    -- Button backdrop
+    button:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false,
+        edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    
+    local bgTertiary = HousingTheme.Colors.bgTertiary
+    local borderPrimary = HousingTheme.Colors.borderPrimary
+    button:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+    button:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+    
+    -- Button text
+    local buttonText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    buttonText:SetPoint("LEFT", 8, 0)
+    buttonText:SetPoint("RIGHT", -20, 0)
+    buttonText:SetJustifyH("LEFT")
+    local textPrimary = HousingTheme.Colors.textPrimary
+    buttonText:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    button.buttonText = buttonText
+    
+    -- Dropdown arrow
+    local arrow = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    arrow:SetPoint("RIGHT", -6, 0)
+    arrow:SetText("v")
+    local textMuted = HousingTheme.Colors.textMuted
+    arrow:SetTextColor(textMuted[1], textMuted[2], textMuted[3], 1)
+
+    -- Set initial button text based on filter type
+    local defaultText = "All " .. label .. "s"
     if label == "Expansion" then
         defaultText = "All Expansions"
     elseif label == "Faction" then
-        -- Use current faction filter value (player's faction or "All Factions")
-        local filterKey = GetFilterKey(label)
-        defaultText = currentFilters[filterKey] or "All Factions"
+        defaultText = GetDefaultFaction()
     elseif label == "Source" then
         defaultText = "All Sources"
+    elseif label == "Collection" then
+        defaultText = "All"
+    elseif label == "Quality" then
+        defaultText = "All Qualities"
+    elseif label == "Requirement" then
+        defaultText = "All Requirements"
     end
-    UIDropDownMenu_SetText(dropdown, defaultText)
+    buttonText:SetText(defaultText)
     
-    -- Store onChange callback
-    dropdown.onChange = onChange
-    dropdown.label = label
+    -- Hover effects
+    local bgHover = HousingTheme.Colors.bgHover
+    button:SetScript("OnEnter", function(self)
+        self:SetBackdropColor(bgHover[1], bgHover[2], bgHover[3], bgHover[4])
+        self:SetBackdropBorderColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
+    end)
+    button:SetScript("OnLeave", function(self)
+        self:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], bgTertiary[4])
+        self:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], borderPrimary[4])
+    end)
+
+    -- Scrollable list frame (Midnight theme)
+    local listFrame = CreateFrame("Frame", "Housing" .. label .. "ListFrame", UIParent, "BackdropTemplate")
+    listFrame:SetSize(300, 350)
+    listFrame:SetPoint("TOPLEFT", button, "BOTTOMLEFT", 0, -2)
+    listFrame:SetFrameStrata("DIALOG")
+    listFrame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false,
+        edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
     
-    -- Set up dropdown menu
-    UIDropDownMenu_Initialize(dropdown, function(self, level)
+    local bgPrimary = HousingTheme.Colors.bgPrimary
+    listFrame:SetBackdropColor(bgPrimary[1], bgPrimary[2], bgPrimary[3], 0.98)
+    listFrame:SetBackdropBorderColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 0.8)
+    listFrame:Hide()
+    listFrame:EnableMouse(true)
+
+    -- Search box in list frame (Midnight theme)
+    local searchContainer = CreateFrame("Frame", nil, listFrame, "BackdropTemplate")
+    searchContainer:SetSize(270, 24)
+    searchContainer:SetPoint("TOPLEFT", 15, -12)
+    searchContainer:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8x8",
+        edgeFile = "Interface\\Buttons\\WHITE8x8",
+        tile = false,
+        edgeSize = 1,
+        insets = { left = 0, right = 0, top = 0, bottom = 0 }
+    })
+    searchContainer:SetBackdropColor(bgTertiary[1], bgTertiary[2], bgTertiary[3], 0.8)
+    searchContainer:SetBackdropBorderColor(borderPrimary[1], borderPrimary[2], borderPrimary[3], 0.6)
+    
+    local searchBox = CreateFrame("EditBox", nil, searchContainer)
+    searchBox:SetPoint("TOPLEFT", 8, -4)
+    searchBox:SetPoint("BOTTOMRIGHT", -8, 4)
+    searchBox:SetAutoFocus(false)
+    searchBox:SetFontObject("GameFontNormalSmall")
+    searchBox:SetTextColor(textPrimary[1], textPrimary[2], textPrimary[3], 1)
+    searchBox:SetScript("OnEscapePressed", function(editBox)
+        editBox:ClearFocus()
+        listFrame:Hide()
+    end)
+
+    local searchLabel = listFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    searchLabel:SetPoint("BOTTOMLEFT", searchContainer, "TOPLEFT", 0, 2)
+    searchLabel:SetText("Search:")
+    searchLabel:SetTextColor(accentPrimary[1], accentPrimary[2], accentPrimary[3], 1)
+
+    -- Scroll frame
+    local scrollFrame = CreateFrame("ScrollFrame", nil, listFrame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 10, -40)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -30, 10)
+
+    -- Content frame for scroll
+    local content = CreateFrame("Frame", nil, scrollFrame)
+    content:SetSize(310, 1)
+    scrollFrame:SetScrollChild(content)
+
+    -- Store for option buttons
+    local optionButtons = {}
+
+    -- Function to populate list
+    local function PopulateList(filterText)
+        -- Clear existing buttons
+        for _, btn in ipairs(optionButtons) do
+            btn:Hide()
+            btn:SetParent(nil)
+        end
+        wipe(optionButtons)
+
+        -- Get options
         local options = {}
-        
-        -- Get options from DataManager
-        if HousingDataManager then
+        if label == "Collection" then
+            -- Collection has fixed options
+            options = {"Collected", "Uncollected"}
+        elseif label == "Quality" then
+            -- Quality has fixed options (sorted by rarity)
+            options = {"Poor", "Common", "Uncommon", "Rare", "Epic", "Legendary"}
+        elseif label == "Requirement" then
+            -- Requirement has fixed options
+            -- Note: Event, Class, Race commented out - no housing items have these requirements
+            options = {"None", "Achievement", "Quest", "Reputation", "Renown", "Profession"}
+        elseif HousingDataManager then
             local filterOptions = HousingDataManager:GetFilterOptions()
             if label == "Expansion" then
                 options = filterOptions.expansions or {}
@@ -409,101 +531,182 @@ function Filters:CreateDropdown(parent, label, point, relativeTo, relativePoint,
             elseif label == "Faction" then
                 options = filterOptions.factions or {}
             elseif label == "Source" then
-                options = filterOptions.sources or {"Achievement", "Quest", "Drop", "Vendor"}
+                options = filterOptions.sources or {}
             end
         end
-        
-        -- Add "All" option (handle pluralization correctly)
-        local allText = string.format("All %ss", label)
+
+        -- Add "All" option with proper pluralization
+        local allText = "All"
         if label == "Expansion" then
             allText = "All Expansions"
         elseif label == "Faction" then
             allText = "All Factions"
         elseif label == "Source" then
             allText = "All Sources"
+        elseif label == "Collection" then
+            allText = "All"
+        elseif label == "Quality" then
+            allText = "All Qualities"
+        elseif label == "Requirement" then
+            allText = "All Requirements"
+        else
+            allText = "All " .. label .. "s"
         end
-        
-        local info = UIDropDownMenu_CreateInfo()
-        info.text = allText
-        info.notCheckable = false
-        local filterKey = GetFilterKey(label)
-        info.checked = (currentFilters[filterKey] == allText)
-        info.func = function()
-            UIDropDownMenu_SetSelectedValue(dropdown, allText)
-            UIDropDownMenu_SetText(dropdown, allText)
-            currentFilters[filterKey] = allText
-            if dropdown.onChange then
-                dropdown.onChange(allText)
+        local filteredOptions = {allText}
+
+        -- Filter options by search text
+        local lowerFilter = string.lower(filterText or "")
+        for _, option in ipairs(options) do
+            if lowerFilter == "" or string.find(string.lower(option), lowerFilter, 1, true) then
+                table.insert(filteredOptions, option)
             end
         end
-        UIDropDownMenu_AddButton(info)
-        
-        -- Add options
-        for _, option in ipairs(options) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = option
-            info.notCheckable = false
-            local filterKey = GetFilterKey(label)
-            info.checked = (currentFilters[filterKey] == option)
-            info.func = function()
-                UIDropDownMenu_SetSelectedValue(dropdown, option)
-                UIDropDownMenu_SetText(dropdown, option)
+
+        -- Create buttons
+        local yOffset = 0
+        for _, option in ipairs(filteredOptions) do
+            local btn = CreateFrame("Button", nil, content)
+            btn:SetSize(310, 24)
+            btn:SetPoint("TOPLEFT", 0, yOffset)
+
+            -- Background
+            local bg = btn:CreateTexture(nil, "BACKGROUND")
+            bg:SetAllPoints()
+            bg:SetColorTexture(0.1, 0.1, 0.1, 0.5)
+            btn.bg = bg
+
+            -- Text
+            local text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            text:SetPoint("LEFT", 5, 0)
+            text:SetText(option)
+            text:SetJustifyH("LEFT")
+            btn.text = text
+
+            -- Highlight
+            btn:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+
+            -- Click handler
+            btn:SetScript("OnClick", function()
+                local filterKey = string.lower(label)
                 currentFilters[filterKey] = option
-                if dropdown.onChange then
-                    dropdown.onChange(option)
+                if button.buttonText then
+                    button.buttonText:SetText(option)
                 end
+                if onChange then
+                    onChange(option)
+                end
+                listFrame:Hide()
+                searchBox:SetText("")
+            end)
+
+            -- Highlight current selection
+            local filterKey = string.lower(label)
+            if currentFilters[filterKey] == option then
+                bg:SetColorTexture(0.2, 0.5, 0.2, 0.5)
             end
-            UIDropDownMenu_AddButton(info)
+
+            table.insert(optionButtons, btn)
+            yOffset = yOffset - 24
         end
+
+        -- Update content height
+        content:SetHeight(math.max(1, #filteredOptions * 24))
+    end
+
+    -- Search box text changed
+    searchBox:SetScript("OnTextChanged", function(editBox)
+        PopulateList(editBox:GetText())
     end)
-    
-    -- Store label for later use
-    dropdown.customLabel = label
-    
-    return dropdown
-end
 
-function Filters:CreateCollectionDropdown(parent, label, onChange)
-    local dropdown = CreateFrame("Frame", string.format("Housing%sDropdown", label), parent, "UIDropDownMenuTemplate")
-
-    local labelText = parent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    labelText:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 20, 3)
-    labelText:SetText(label .. ":")
-    labelText:SetTextColor(1, 0.82, 0, 1)
-
-    UIDropDownMenu_SetWidth(dropdown, 120)
-    UIDropDownMenu_SetText(dropdown, "Uncollected")
-
-    dropdown.onChange = onChange
-    dropdown.label = label
-
-    UIDropDownMenu_Initialize(dropdown, function()
-        local options = {"All", "Uncollected", "Collected"}
-
-        for _, option in ipairs(options) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = option
-            info.value = option
-            info.func = function()
-                UIDropDownMenu_SetText(dropdown, option)
-                if dropdown.onChange then
-                    dropdown.onChange(option)
-                end
-            end
-            UIDropDownMenu_AddButton(info)
+    -- Button click to show/hide list
+    button:SetScript("OnClick", function()
+        if listFrame:IsShown() then
+            listFrame:Hide()
+        else
+            PopulateList("")
+            listFrame:Show()
+            searchBox:SetFocus()
         end
     end)
 
-    dropdown.customLabel = label
+    -- Close when clicking outside
+    listFrame:SetScript("OnHide", function()
+        searchBox:SetText("")
+        searchBox:ClearFocus()
+    end)
 
-    return dropdown
+    -- Store references
+    container.button = button
+    container.listFrame = listFrame
+    container.label = label
+
+    return container
 end
 
 -- Apply filters and update item list
 function Filters:ApplyFilters()
     if HousingItemList and HousingDataManager then
         local allItems = HousingDataManager:GetAllItems()
+        
+        -- Debug: Print filter state
+        local filterCount = 0
+        local activeFilters = {}
+        if currentFilters.expansion and currentFilters.expansion ~= "All Expansions" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Expansion: " .. currentFilters.expansion)
+        end
+        if currentFilters.vendor and currentFilters.vendor ~= "All Vendors" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Vendor: " .. currentFilters.vendor)
+        end
+        if currentFilters.zone and currentFilters.zone ~= "All Zones" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Zone: " .. currentFilters.zone)
+        end
+        if currentFilters.type and currentFilters.type ~= "All Types" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Type: " .. currentFilters.type)
+        end
+        if currentFilters.category and currentFilters.category ~= "All Categories" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Category: " .. currentFilters.category)
+        end
+        if currentFilters.faction and currentFilters.faction ~= "All Factions" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Faction: " .. currentFilters.faction)
+        end
+        if currentFilters.source and currentFilters.source ~= "All Sources" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Source: " .. currentFilters.source)
+        end
+        if currentFilters.collection and currentFilters.collection ~= "All" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Collection: " .. currentFilters.collection)
+        end
+        if currentFilters.quality and currentFilters.quality ~= "All Qualities" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Quality: " .. currentFilters.quality)
+        end
+        if currentFilters.requirement and currentFilters.requirement ~= "All Requirements" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Requirement: " .. currentFilters.requirement)
+        end
+        if currentFilters.searchText and currentFilters.searchText ~= "" then
+            filterCount = filterCount + 1
+            table.insert(activeFilters, "Search: " .. currentFilters.searchText)
+        end
+        
+        if filterCount > 0 then
+            -- Silently apply filters
+            -- print("|cFF8A7FD4HousingVendor:|r Applying " .. filterCount .. " filter(s): " .. table.concat(activeFilters, ", "))
+        end
+        
         HousingItemList:UpdateItems(allItems, currentFilters)
+        
+        -- Keep preview panel visible when filters change (don't hide it)
+        -- The preview panel will update if the selected item is still in the filtered list
+    else
+        print("|cFFFF0000HousingVendor:|r Filter error - HousingItemList or HousingDataManager not available")
     end
 end
 
@@ -522,7 +725,10 @@ function Filters:ClearAllFilters()
     currentFilters.category = "All Categories"
     currentFilters.faction = GetDefaultFaction()
     currentFilters.source = "All Sources"
-    currentFilters.collection = "Uncollected"
+    currentFilters.collection = "All"
+    currentFilters.quality = "All Qualities"
+    currentFilters.requirement = "All Requirements"
+    currentFilters.hideVisited = false
     currentFilters.selectedExpansions = {}
     currentFilters.selectedSources = {}
     currentFilters.selectedFactions = {}
@@ -531,50 +737,80 @@ function Filters:ClearAllFilters()
     if searchBox then
         searchBox:SetText("")
     end
-
-    local expansionDropdown = _G["HousingExpansionDropdown"]
-    if expansionDropdown then
-        UIDropDownMenu_SetText(expansionDropdown, "All Expansions")
+    
+    local hideVisitedCheckbox = _G["HousingHideVisitedCheckbox"]
+    if hideVisitedCheckbox then
+        hideVisitedCheckbox:SetChecked(false)
     end
 
-    local vendorDropdown = _G["HousingVendorDropdown"]
-    if vendorDropdown then
-        UIDropDownMenu_SetText(vendorDropdown, "All Vendors")
+    -- Helper to set button text (handles both old and new button styles)
+    local function SetButtonText(buttonName, text)
+        local btn = _G[buttonName]
+        if btn then
+            if btn.buttonText then
+                btn.buttonText:SetText(text)
+            elseif btn.SetText then
+                btn:SetText(text)
+            end
+        end
     end
 
-    local zoneDropdown = _G["HousingZoneDropdown"]
-    if zoneDropdown then
-        UIDropDownMenu_SetText(zoneDropdown, "All Zones")
-    end
-
-    local typeDropdown = _G["HousingTypeDropdown"]
-    if typeDropdown then
-        UIDropDownMenu_SetText(typeDropdown, "All Types")
-    end
-
-    local categoryDropdown = _G["HousingCategoryDropdown"]
-    if categoryDropdown then
-        UIDropDownMenu_SetText(categoryDropdown, "All Categories")
-    end
-
-    local sourceDropdown = _G["HousingSourceDropdown"]
-    if sourceDropdown then
-        UIDropDownMenu_SetText(sourceDropdown, "All Sources")
-    end
-
-    local factionDropdown = _G["HousingFactionDropdown"]
-    if factionDropdown then
-        UIDropDownMenu_SetText(factionDropdown, GetDefaultFaction())
-    end
-
-    local collectionDropdown = _G["HousingCollectionDropdown"]
-    if collectionDropdown then
-        UIDropDownMenu_SetText(collectionDropdown, "Uncollected")
-    end
+    SetButtonText("HousingExpansionButton", "All Expansions")
+    SetButtonText("HousingVendorButton", "All Vendors")
+    SetButtonText("HousingZoneButton", "All Zones")
+    SetButtonText("HousingTypeButton", "All Types")
+    SetButtonText("HousingCategoryButton", "All Categories")
+    SetButtonText("HousingSourceButton", "All Sources")
+    SetButtonText("HousingFactionButton", GetDefaultFaction())
+    SetButtonText("HousingCollectionButton", "All")
+    SetButtonText("HousingQualityButton", "All Qualities")
+    SetButtonText("HousingRequirementButton", "All Requirements")
 
     self:ApplyFilters()
 
-    print("|cFFFFD100HousingVendor:|r Filters cleared")
+    -- Silently clear filters
+    -- print("|cFF8A7FD4HousingVendor:|r Filters cleared")
+end
+
+-- Refresh theme colors dynamically
+function Filters:RefreshTheme()
+    if not filterFrame then return end
+    
+    local colors = HousingTheme.Colors
+    
+    -- Update filter frame backdrop
+    filterFrame:SetBackdropColor(colors.bgSecondary[1], colors.bgSecondary[2], colors.bgSecondary[3], colors.bgSecondary[4])
+    filterFrame:SetBackdropBorderColor(colors.borderPrimary[1], colors.borderPrimary[2], colors.borderPrimary[3], 0.5)
+    
+    -- Update search container if it exists
+    local searchContainer = filterFrame:GetChildren()
+    for _, child in pairs({filterFrame:GetChildren()}) do
+        if child:GetObjectType() == "Frame" and child.GetBackdrop and child:GetBackdrop() then
+            -- Update backdrop colors for all frames
+            child:SetBackdropColor(colors.bgTertiary[1], colors.bgTertiary[2], colors.bgTertiary[3], colors.bgTertiary[4])
+            child:SetBackdropBorderColor(colors.borderPrimary[1], colors.borderPrimary[2], colors.borderPrimary[3], colors.borderPrimary[4])
+        elseif child:GetObjectType() == "Button" and child.GetBackdrop and child:GetBackdrop() then
+            -- Update backdrop colors for all buttons
+            child:SetBackdropColor(colors.bgTertiary[1], colors.bgTertiary[2], colors.bgTertiary[3], colors.bgTertiary[4])
+            child:SetBackdropBorderColor(colors.borderPrimary[1], colors.borderPrimary[2], colors.borderPrimary[3], colors.borderPrimary[4])
+        end
+    end
+    
+    -- Update all text elements
+    local regions = {filterFrame:GetRegions()}
+    for _, region in ipairs(regions) do
+        if region:GetObjectType() == "FontString" then
+            -- Check if it's a label (accent color) or regular text (primary color)
+            local text = region:GetText()
+            if text and string.find(text, ":") then
+                -- Labels end with ":" - use accent color
+                region:SetTextColor(colors.accentPrimary[1], colors.accentPrimary[2], colors.accentPrimary[3], 1)
+            else
+                -- Regular text - use primary color
+                region:SetTextColor(colors.textPrimary[1], colors.textPrimary[2], colors.textPrimary[3], 1)
+            end
+        end
+    end
 end
 
 -- Make globally accessible

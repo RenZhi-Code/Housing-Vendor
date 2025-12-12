@@ -1,4 +1,4 @@
--- Waypoint Manager Module for HousingVendor addon
+-- Waypoint Manager Module
 -- Handles both Blizzard native waypoints and TomTom integration
 
 local WaypointManager = {}
@@ -12,6 +12,44 @@ local function GetExpansionFromMapID(mapID)
     if HousingMapIDToExpansion and HousingMapIDToExpansion[mapID] then
         return HousingMapIDToExpansion[mapID]
     end
+    return nil
+end
+
+-- Get a default mapID for an expansion (used when item.mapID is missing/invalid)
+local function GetDefaultMapIDForExpansion(expansionName)
+    if not expansionName then return nil end
+    
+    -- Map of expansion names to default mapIDs (main hub zones)
+    local expansionDefaults = {
+        ["The War Within"] = 2339,  -- Dornogal
+        ["Dragonflight"] = 2112,    -- Valdrakken
+        ["Shadowlands"] = 1670,     -- Oribos
+        ["Battle for Azeroth"] = 1161, -- Boralus (Alliance) / 1165 Dazar'alor (Horde)
+        ["Legion"] = 627,           -- Dalaran (Broken Isles)
+        ["Warlords of Draenor"] = 622, -- Stormshield (Alliance) / 624 Warspear (Horde)
+        ["Mists of Pandaria"] = 390, -- Shrine of Seven Stars (Alliance) / 392 Shrine of Two Moons (Horde)
+        ["Cataclysm"] = 198,        -- Mount Hyjal
+        ["Wrath of the Lich King"] = 125, -- Dalaran (Northrend)
+        ["The Burning Crusade"] = 111, -- Shattrath
+        ["Classic"] = 84            -- Stormwind (Alliance) / 85 Orgrimmar (Horde)
+    }
+    
+    return expansionDefaults[expansionName]
+end
+
+-- Get zone name from mapID
+local function GetZoneNameFromMapID(mapID)
+    if not mapID or mapID == 0 then return nil end
+
+    if C_Map and C_Map.GetMapInfo then
+        local success, mapInfo = pcall(function()
+            return C_Map.GetMapInfo(mapID)
+        end)
+        if success and mapInfo and mapInfo.name then
+            return mapInfo.name
+        end
+    end
+
     return nil
 end
 
@@ -38,6 +76,51 @@ local function GetPortalRoom()
 
     return nil
 end
+
+-- Find the specific portal for a given expansion in the current zone
+local function FindPortalForExpansion(currentMapID, destinationExpansion)
+    if not HousingPortalData or not currentMapID or not destinationExpansion then
+        return nil
+    end
+
+    -- Find portals in the current zone
+    local currentZonePortals = nil
+    for zoneName, portals in pairs(HousingPortalData) do
+        if portals and #portals > 0 then
+            for _, portal in ipairs(portals) do
+                if portal.mapID == currentMapID then
+                    currentZonePortals = portals
+                    break
+                end
+            end
+            if currentZonePortals then break end
+        end
+    end
+
+    if not currentZonePortals then
+        return nil
+    end
+
+    -- Find portal that matches the destination expansion
+    -- Prioritize specific portal names over generic "Portal Room" entries
+    local specificPortal = nil
+    local genericPortal = nil
+    
+    for _, portal in ipairs(currentZonePortals) do
+        if portal.destinationExpansion and portal.destinationExpansion == destinationExpansion then
+            -- Check if this is a specific portal (not a generic "Portal Room" entry)
+            if portal.name and not string.find(portal.name, "Portal Room", 1, true) then
+                specificPortal = portal
+                break  -- Found specific portal, use it
+            else
+                genericPortal = portal  -- Store generic portal as fallback
+            end
+        end
+    end
+    
+    -- Return specific portal if found, otherwise return generic portal
+    return specificPortal or genericPortal
+end
 local function RequiresPortalTravel(currentMapID, destinationMapID)
     if not currentMapID or not destinationMapID then return false end
     if currentMapID == destinationMapID then return false end
@@ -46,7 +129,7 @@ local function RequiresPortalTravel(currentMapID, destinationMapID)
     local destExpansion = GetExpansionFromMapID(destinationMapID)
 
     if not currentExpansion or not destExpansion then
-        return true
+        return false  -- If expansion unknown, assume no portal needed
     end
 
     return currentExpansion ~= destExpansion
@@ -226,55 +309,161 @@ local function SetTomTomWaypoint(mapID, x, y, title)
 end
 function WaypointManager:SetWaypoint(item)
     if not item then
-        print("|cFFFF4040HousingVendor:|r No item data provided")
+        print("|cFFE63946HousingVendor:|r No item data provided")
         return false
     end
 
     if not item.vendorCoords or not item.vendorCoords.x or not item.vendorCoords.y then
-        print("|cFFFF4040HousingVendor:|r No valid coordinates for waypoint")
+        print("|cFFE63946HousingVendor:|r No valid coordinates for waypoint")
         return false
     end
 
-    if not item.mapID or item.mapID == 0 then
-        print("|cFFFF4040HousingVendor:|r No valid map ID for waypoint")
-        return false
+    -- Handle missing or invalid mapID - use expansion name as fallback
+    local effectiveMapID = item.mapID
+    if not effectiveMapID or effectiveMapID == 0 then
+        -- Try to get default mapID from expansion name
+        if item.expansionName then
+            effectiveMapID = GetDefaultMapIDForExpansion(item.expansionName)
+            if effectiveMapID then
+                print("|cFFF2CC8FHousingVendor:|r Using default mapID for " .. item.expansionName .. " (item mapID missing)")
+            else
+                print("|cFFE63946HousingVendor:|r No valid map ID for waypoint and no expansion name available")
+                return false
+            end
+        else
+            print("|cFFE63946HousingVendor:|r No valid map ID for waypoint")
+            return false
+        end
     end
 
     local x = item.vendorCoords.x / 100
     local y = item.vendorCoords.y / 100
 
     if x < 0 or x > 1 or y < 0 or y > 1 then
-        print("|cFFFF4040HousingVendor:|r Invalid coordinates: " .. tostring(x) .. ", " .. tostring(y))
+        print("|cFFE63946HousingVendor:|r Invalid coordinates: " .. tostring(x) .. ", " .. tostring(y))
         return false
     end
 
-    local currentMapID = GetPlayerPosition()
+    local currentMapID, currentX, currentY = GetPlayerPosition()
     local locationName = item.vendorName or item.name or item.zoneName or "location"
-    local destinationExpansion = GetExpansionFromMapID(item.mapID)
+    local currentExpansion = GetExpansionFromMapID(currentMapID)
+    
+    -- Try to get expansion from mapID first, fallback to item.expansionName
+    local destinationExpansion = GetExpansionFromMapID(effectiveMapID)
+    if not destinationExpansion and item.expansionName then
+        destinationExpansion = item.expansionName
+        if effectiveMapID ~= item.mapID then
+            print("|cFFF2CC8FHousingVendor:|r Using expansion name '" .. destinationExpansion .. "' for portal routing")
+        end
+    end
+    
+    local destinationZoneName = GetZoneNameFromMapID(effectiveMapID) or item.zoneName or "Unknown Zone"
+    local currentZoneName = GetZoneNameFromMapID(currentMapID) or "Unknown Location"
     local coords = string.format("%.1f, %.1f", item.vendorCoords.x, item.vendorCoords.y)
 
-    if currentMapID and RequiresPortalTravel(currentMapID, item.mapID) then
-        local portalRoom = GetPortalRoom()
+    -- Debug: Show expansion detection (only in debug mode)
+    -- if not currentExpansion and currentMapID then
+    --     print("|cFFFF4040HousingVendor Debug:|r Current mapID " .. currentMapID .. " has no expansion mapping")
+    -- end
+    -- if not destinationExpansion then
+    --     print("|cFFFF4040HousingVendor Debug:|r Could not determine destination expansion (mapID: " .. tostring(effectiveMapID) .. ", expansionName: " .. tostring(item.expansionName) .. ")")
+    -- end
 
+    -- Check if destination is in Stormwind/Orgrimmar (portal room cities)
+    local portalRoom = GetPortalRoom()
+    local isDestinationPortalCity = false
+    if portalRoom and effectiveMapID == portalRoom.mapID then
+        isDestinationPortalCity = true
+    end
+
+    -- Portal routing logic - use expansion comparison if we have both expansions
+    local needsPortalTravel = false
+    if currentMapID and destinationExpansion and currentExpansion then
+        -- Both expansions known - compare them
+        needsPortalTravel = (currentExpansion ~= destinationExpansion)
+    elseif currentMapID and effectiveMapID then
+        -- Fallback to mapID comparison
+        needsPortalTravel = RequiresPortalTravel(currentMapID, effectiveMapID)
+    end
+    
+    if needsPortalTravel then
         if portalRoom then
-            print("|cFFFFAA00=== HousingVendor: Portal Routing Required ===|r")
-            print("|cFFFFD100Step 1:|r Navigate to " .. portalRoom.name)
-            print("|cFFFFD100Step 2:|r Use portal to |cFF00FF00" .. (destinationExpansion or item.zoneName or "destination") .. "|r")
-            print("|cFFFFD100Step 3:|r Waypoint will automatically update when you arrive!")
-            print("|cFFFFAA00==========================================|r")
+            -- Check if we're already in the portal room city
+            local isInPortalCity = (currentMapID == portalRoom.mapID)
 
-            pendingDestination = {
-                item = item,
-                locationName = locationName
-            }
+            if isDestinationPortalCity then
+                -- Destination IS Stormwind/Orgrimmar - just set waypoint
+                -- Continue to set waypoint below
+            elseif isInPortalCity then
+                -- We're in portal city, destination is another expansion - find and use specific portal
+                local specificPortal = FindPortalForExpansion(currentMapID, destinationExpansion)
+                
+                if specificPortal then
+                    print(string.format("|cFF8A7FD4HousingVendor:|r Portal: Use |cFF00FF00%s|r to %s (arrow updates on arrival)",
+                        specificPortal.name, destinationZoneName))
 
-            local portalX = portalRoom.x / 100
-            local portalY = portalRoom.y / 100
+                    pendingDestination = {
+                        item = item,
+                        locationName = locationName
+                    }
 
-            SetBlizzardWaypoint(portalRoom.mapID, portalX, portalY)
-            SetTomTomWaypoint(portalRoom.mapID, portalX, portalY, portalRoom.name)
+                    -- Set waypoint to the specific portal location
+                    local portalX = specificPortal.x / 100
+                    local portalY = specificPortal.y / 100
+                    SetBlizzardWaypoint(specificPortal.mapID, portalX, portalY)
+                    SetTomTomWaypoint(specificPortal.mapID, portalX, portalY, specificPortal.name)
 
-            return true
+                    return true
+                else
+                    -- Fallback to generic portal room message if specific portal not found
+                    print(string.format("|cFF8A7FD4HousingVendor:|r Use portal to %s (arrow updates on arrival)",
+                        destinationExpansion or destinationZoneName))
+
+                    pendingDestination = {
+                        item = item,
+                        locationName = locationName
+                    }
+
+                    return true
+                end
+            else
+                -- We're not in portal city - navigate there first, then use specific portal
+                local specificPortal = FindPortalForExpansion(portalRoom.mapID, destinationExpansion)
+                
+                if specificPortal then
+                    print(string.format("|cFF8A7FD4HousingVendor:|r Go to %s - Use |cFF00FF00%s|r (arrow updates on arrival)",
+                        portalRoom.name, specificPortal.name))
+
+                    pendingDestination = {
+                        item = item,
+                        locationName = locationName
+                    }
+
+                    -- Set waypoint to the specific portal location (not the generic portal room)
+                    local portalX = specificPortal.x / 100
+                    local portalY = specificPortal.y / 100
+                    SetBlizzardWaypoint(specificPortal.mapID, portalX, portalY)
+                    SetTomTomWaypoint(specificPortal.mapID, portalX, portalY, specificPortal.name)
+
+                    return true
+                else
+                    -- Fallback to generic portal room if specific portal not found
+                    print(string.format("|cFF8A7FD4HousingVendor:|r Go to %s, use portal to %s (arrow updates on arrival)",
+                        portalRoom.name, destinationExpansion or destinationZoneName))
+
+                    pendingDestination = {
+                        item = item,
+                        locationName = locationName
+                    }
+
+                    local portalX = portalRoom.x / 100
+                    local portalY = portalRoom.y / 100
+                    SetBlizzardWaypoint(portalRoom.mapID, portalX, portalY)
+                    SetTomTomWaypoint(portalRoom.mapID, portalX, portalY, portalRoom.name)
+
+                    return true
+                end
+            end
         end
     end
 
@@ -284,16 +473,43 @@ function WaypointManager:SetWaypoint(item)
         return self:SetWaypoint(pendingItem)
     end
 
-    SetBlizzardWaypoint(item.mapID, x, y)
-    SetTomTomWaypoint(item.mapID, x, y, locationName)
-
-    print("|cFF00FF00HousingVendor:|r Waypoint set to " .. locationName .. " at |cFFFFD100" .. coords .. "|r")
-
-    return true
+    -- Try to set both waypoints and capture results
+    local blizzardSuccess, blizzardError = SetBlizzardWaypoint(effectiveMapID, x, y)
+    local tomtomSuccess, tomtomError = SetTomTomWaypoint(effectiveMapID, x, y, locationName)
+    
+    -- Report results
+    if blizzardSuccess or tomtomSuccess then
+        local methods = {}
+        if blizzardSuccess then table.insert(methods, "Blizzard") end
+        if tomtomSuccess then table.insert(methods, "TomTom") end
+        
+        print(string.format("|cFF8A7FD4HousingVendor:|r Waypoint set: %s (%s)",
+            locationName, table.concat(methods, " + ")))
+        
+        -- Show errors for failed methods (only if one failed)
+        if not blizzardSuccess and blizzardError and tomtomSuccess then
+            -- Don't spam if Blizzard failed but TomTom worked
+        end
+        if not tomtomSuccess and tomtomError and blizzardSuccess then
+            -- Don't spam if TomTom failed but Blizzard worked
+        end
+        
+        return true
+    else
+        -- Both failed - show errors
+        print("|cFFE63946HousingVendor:|r Failed to set waypoint to " .. locationName)
+        if blizzardError then
+            print("|cFFFF4040  - Blizzard:|r " .. blizzardError)
+        end
+        if tomtomError then
+            print("|cFFFF4040  - TomTom:|r " .. tomtomError)
+        end
+        return false
+    end
 end
 function WaypointManager:ClearPendingDestination()
     if pendingDestination then
-        print("|cFF00FF00HousingVendor:|r Cleared pending destination")
+        -- Silently clear - no need to spam chat
         pendingDestination = nil
         return true
     end
@@ -330,7 +546,17 @@ local function OnZoneChanged()
     lastMapID = currentMapID
 
     local currentExpansion = GetExpansionFromMapID(currentMapID)
-    local destinationExpansion = GetExpansionFromMapID(pendingDestination.item.mapID)
+    
+    -- Get effective mapID and expansion for pending destination
+    local pendingMapID = pendingDestination.item.mapID
+    if not pendingMapID or pendingMapID == 0 then
+        pendingMapID = GetDefaultMapIDForExpansion(pendingDestination.item.expansionName)
+    end
+    
+    local destinationExpansion = GetExpansionFromMapID(pendingMapID)
+    if not destinationExpansion and pendingDestination.item.expansionName then
+        destinationExpansion = pendingDestination.item.expansionName
+    end
 
     if currentExpansion and destinationExpansion and currentExpansion == destinationExpansion then
         C_Timer.After(1.5, function()
@@ -362,7 +588,7 @@ function WaypointManager:Initialize()
         end
     end
 
-    print("|cFF00FF00HousingVendor:|r Waypoint Manager initialized with automatic portal routing")
+    -- Silently initialize - no chat spam
 end
 
 _G["HousingWaypointManager"] = WaypointManager

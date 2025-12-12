@@ -1,4 +1,4 @@
--- Locale loader for HousingVendor addon
+-- Locale loader
 -- Note: All locale files are already loaded via .toc file
 -- This just sets up the fallback system
 
