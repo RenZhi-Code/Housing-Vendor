@@ -259,6 +259,7 @@ function AchievementHandler:Initialize()
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("ACHIEVEMENT_EARNED")
     frame:RegisterEvent("CRITERIA_UPDATE")
+    local lastTimerStarted = 0
     frame:SetScript("OnEvent", function(self, event, ...)
         if event == "ACHIEVEMENT_EARNED" then
             local achID = ...
@@ -267,9 +268,12 @@ function AchievementHandler:Initialize()
             end
         elseif event == "CRITERIA_UPDATE" then
             -- Criteria updated, schedule a delayed refresh
-            C_Timer.After(1, function()
-                AchievementHandler:RefreshAllAchievements()
-            end)
+            if lastTimerStarted + .8 < GetTime() then
+                C_Timer.After(1, function()
+                    AchievementHandler:RefreshAllAchievements()
+                end)
+                lastTimerStarted = GetTime()
+            end
         end
     end)
 
